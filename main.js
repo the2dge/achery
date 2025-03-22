@@ -6,6 +6,7 @@ var randomAngle = 0;
 // Game stats
 var score = 0;
 var arrowsLeft = 10;
+var isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
 // center of target
 var target = {
@@ -78,6 +79,14 @@ function createLogo() {
   
   svg.appendChild(logoText);
 }
+// Create responsive viewport setup
+function setupViewport() {
+  // Set viewBox for better scaling on mobile
+  if (isMobile) {
+    svg.setAttribute("viewBox", "0 0 1000 500");
+    svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
+  }
+}
 
 // Create scoreboard
 function createScoreboard() {
@@ -145,13 +154,96 @@ function createResetButton() {
   
   resetGroup.appendChild(resetBg);
   resetGroup.appendChild(resetText);
-  resetGroup.addEventListener("click", resetGame);
+  
+  // Add touch events for mobile
+  if (isMobile) {
+    resetGroup.addEventListener("touchstart", resetGame);
+  } else {
+    resetGroup.addEventListener("click", resetGame);
+  }
   
   svg.appendChild(resetGroup);
 }
 
+// Create instruction overlay for mobile
+function createInstructions() {
+  if (!isMobile) return;
+  
+  var instructionsGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+  instructionsGroup.setAttribute("id", "instructions");
+  
+  var instructionsBg = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+  instructionsBg.setAttribute("x", "250");
+  instructionsBg.setAttribute("y", "150");
+  instructionsBg.setAttribute("width", "500");
+  instructionsBg.setAttribute("height", "200");
+  instructionsBg.setAttribute("rx", "10");
+  instructionsBg.setAttribute("fill", "#333");
+  instructionsBg.setAttribute("opacity", "0.9");
+  
+  var instructionsTitle = document.createElementNS("http://www.w3.org/2000/svg", "text");
+  instructionsTitle.setAttribute("x", "500");
+  instructionsTitle.setAttribute("y", "190");
+  instructionsTitle.setAttribute("text-anchor", "middle");
+  instructionsTitle.setAttribute("fill", "#fff");
+  instructionsTitle.setAttribute("font-size", "24");
+  instructionsTitle.textContent = "Mobile Archery Game";
+  
+  var instructionsText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+  instructionsText.setAttribute("x", "500");
+  instructionsText.setAttribute("y", "230");
+  instructionsText.setAttribute("text-anchor", "middle");
+  instructionsText.setAttribute("fill", "#fff");
+  instructionsText.setAttribute("font-size", "18");
+  instructionsText.textContent = "1. Touch and drag to aim";
+  
+  var instructionsText2 = document.createElementNS("http://www.w3.org/2000/svg", "text");
+  instructionsText2.setAttribute("x", "500");
+  instructionsText2.setAttribute("y", "260");
+  instructionsText2.setAttribute("text-anchor", "middle");
+  instructionsText2.setAttribute("fill", "#fff");
+  instructionsText2.setAttribute("font-size", "18");
+  instructionsText2.textContent = "2. Release to shoot";
+  
+  var startButton = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+  startButton.setAttribute("x", "400");
+  startButton.setAttribute("y", "290");
+  startButton.setAttribute("width", "200");
+  startButton.setAttribute("height", "40");
+  startButton.setAttribute("rx", "5");
+  startButton.setAttribute("fill", "#88ce02");
+  
+  var startText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+  startText.setAttribute("x", "500");
+  startText.setAttribute("y", "315");
+  startText.setAttribute("text-anchor", "middle");
+  startText.setAttribute("fill", "#fff");
+  startText.setAttribute("font-size", "18");
+  startText.textContent = "Start Game";
+  
+  instructionsGroup.appendChild(instructionsBg);
+  instructionsGroup.appendChild(instructionsTitle);
+  instructionsGroup.appendChild(instructionsText);
+  instructionsGroup.appendChild(instructionsText2);
+  instructionsGroup.appendChild(startButton);
+  instructionsGroup.appendChild(startText);
+  
+  instructionsGroup.addEventListener("touchstart", function(e) {
+    if (e.target === startButton || e.target === startText) {
+      svg.removeChild(instructionsGroup);
+    }
+  });
+  
+  svg.appendChild(instructionsGroup);
+}
+
 // Reset game
-function resetGame() {
+function resetGame(e) {
+  // Prevent default for touch events
+  if (e && e.preventDefault) {
+    e.preventDefault();
+  }
+  
   score = 0;
   arrowsLeft = 10;
   updateScoreboard();
@@ -166,28 +258,61 @@ function resetGame() {
   TweenMax.set(".hit", { autoAlpha: 0 });
   TweenMax.set(".bullseye", { autoAlpha: 0 });
   
+  // Remove game over message if present
+  var gameOver = document.getElementById("game-over");
+  if (gameOver && gameOver.parentNode) {
+    svg.removeChild(gameOver);
+  }
+  
   // Enable drawing
-  window.addEventListener("mousedown", draw);
+  if (isMobile) {
+    svg.addEventListener("touchstart", draw);
+  } else {
+    window.addEventListener("mousedown", draw);
+  }
 }
 
 // Initialize game
 function initGame() {
+  setupViewport();
+  createLogo();
   createScoreboard();
   createResetButton();
-  createLogo();
+  createInstructions();
+  
+  // Initial aim position
   aim({
     clientX: 320,
     clientY: 300
   });
+  
+  // Set up event listeners based on device
+  if (isMobile) {
+    svg.addEventListener("touchstart", draw);
+    
+    // Prevent scrolling while playing
+    svg.addEventListener("touchmove", function(e) {
+      e.preventDefault();
+    }, { passive: false });
+    
+    // Disable long-press context menu
+    svg.addEventListener("contextmenu", function(e) {
+      e.preventDefault();
+    });
+  } else {
+    window.addEventListener("mousedown", draw);
+  }
 }
 
 // Call init function
 initGame();
 
-// set up start drag event
-window.addEventListener("mousedown", draw);
-
 function draw(e) {
+  // Prevent default for touch events
+  if (e && e.preventDefault) {
+    e.preventDefault();
+  }
+  
   // Check if there are arrows left
   if (arrowsLeft <= 0) {
     return;
@@ -198,9 +323,32 @@ function draw(e) {
   TweenMax.to(".arrow-angle use", 0.3, {
     opacity: 1
   });
-  window.addEventListener("mousemove", aim);
-  window.addEventListener("mouseup", loose);
-  aim(e);
+  
+  // Set up event listeners based on device
+  if (isMobile) {
+    window.addEventListener("touchmove", handleTouchMove);
+    window.addEventListener("touchend", loose);
+  } else {
+    window.addEventListener("mousemove", aim);
+    window.addEventListener("mouseup", loose);
+  }
+  
+  // Initial aim
+  if (isMobile) {
+    handleTouchMove(e);
+  } else {
+    aim(e);
+  }
+}
+
+// Handle touch move events
+function handleTouchMove(e) {
+  if (e.touches && e.touches[0]) {
+    aim({
+      clientX: e.touches[0].clientX,
+      clientY: e.touches[0].clientY
+    });
+  }
 }
 
 function aim(e) {
@@ -245,18 +393,28 @@ function aim(e) {
     attr: {
       d: "M100,250c" + offset.x + "," + offset.y + "," + (arcWidth - offset.x) + "," + (offset.y + 50) + "," + arcWidth + ",50"
     },
-      autoAlpha: distance/60
+    autoAlpha: distance/60
   });
 }
 
-function loose() {
+function loose(e) {
+  // Prevent default for touch events
+  if (e && e.preventDefault) {
+    e.preventDefault();
+  }
+  
   // Decrement arrows left
   arrowsLeft--;
   updateScoreboard();
   
   // release arrow
-  window.removeEventListener("mousemove", aim);
-  window.removeEventListener("mouseup", loose);
+  if (isMobile) {
+    window.removeEventListener("touchmove", handleTouchMove);
+    window.removeEventListener("touchend", loose);
+  } else {
+    window.removeEventListener("mousemove", aim);
+    window.removeEventListener("mouseup", loose);
+  }
 
   TweenMax.to("#bow", 0.4, {
     scaleX: 1,
@@ -328,6 +486,11 @@ function hitTest(tween) {
       points = 10;
     }
     
+    // Add haptic feedback for mobile
+    if (isMobile && window.navigator.vibrate) {
+      window.navigator.vibrate(200);
+    }
+    
     // Add points to score
     score += points;
     updateScoreboard();
@@ -373,7 +536,7 @@ function showGameOver() {
   gameOverBg.setAttribute("x", "300");
   gameOverBg.setAttribute("y", "150");
   gameOverBg.setAttribute("width", "400");
-  gameOverBg.setAttribute("height", "100");
+  gameOverBg.setAttribute("height", "140");  // Increased height for mobile
   gameOverBg.setAttribute("rx", "10");
   gameOverBg.setAttribute("fill", "#333");
   gameOverBg.setAttribute("opacity", "0.9");
@@ -384,7 +547,7 @@ function showGameOver() {
   gameOverText.setAttribute("text-anchor", "middle");
   gameOverText.setAttribute("fill", "#fff");
   gameOverText.setAttribute("font-size", "30");
-  gameOverText.textContent = "遊戲結束!";
+  gameOverText.textContent = "Game Over!";
   
   var finalScoreText = document.createElementNS("http://www.w3.org/2000/svg", "text");
   finalScoreText.setAttribute("x", "500");
@@ -392,11 +555,37 @@ function showGameOver() {
   finalScoreText.setAttribute("text-anchor", "middle");
   finalScoreText.setAttribute("fill", "#fff");
   finalScoreText.setAttribute("font-size", "24");
-  finalScoreText.textContent = "最終得分: " + score;
+  finalScoreText.textContent = "Final Score: " + score;
+  
+  // Add Play Again button
+  var playAgainBg = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+  playAgainBg.setAttribute("x", "400");
+  playAgainBg.setAttribute("y", "250");
+  playAgainBg.setAttribute("width", "200");
+  playAgainBg.setAttribute("height", "40");
+  playAgainBg.setAttribute("rx", "5");
+  playAgainBg.setAttribute("fill", "#88ce02");
+  
+  var playAgainText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+  playAgainText.setAttribute("x", "500");
+  playAgainText.setAttribute("y", "275");
+  playAgainText.setAttribute("text-anchor", "middle");
+  playAgainText.setAttribute("fill", "#fff");
+  playAgainText.setAttribute("font-size", "18");
+  playAgainText.textContent = "Play Again";
   
   gameOverGroup.appendChild(gameOverBg);
   gameOverGroup.appendChild(gameOverText);
   gameOverGroup.appendChild(finalScoreText);
+  gameOverGroup.appendChild(playAgainBg);
+  gameOverGroup.appendChild(playAgainText);
+  
+  // Add event listeners for play again button
+  gameOverGroup.addEventListener(isMobile ? "touchstart" : "click", function(e) {
+    if (e.target === playAgainBg || e.target === playAgainText) {
+      resetGame(e);
+    }
+  });
   
   svg.appendChild(gameOverGroup);
   
@@ -406,19 +595,17 @@ function showGameOver() {
     y: -50,
     ease: Back.easeOut
   });
-  
-  // Remove after 4 seconds
-  setTimeout(function() {
-    if (gameOverGroup.parentNode) {
-      svg.removeChild(gameOverGroup);
-    }
-  }, 4000);
 }
 
 function getMouseSVG(e) {
   // normalize mouse position within svg coordinates
-  cursor.x = e.clientX;
-  cursor.y = e.clientY;
+  if (isMobile && e.touches && e.touches[0]) {
+    cursor.x = e.touches[0].clientX;
+    cursor.y = e.touches[0].clientY;
+  } else {
+    cursor.x = e.clientX;
+    cursor.y = e.clientY;
+  }
   return cursor.matrixTransform(svg.getScreenCTM().inverse());
 }
 
