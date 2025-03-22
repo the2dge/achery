@@ -35,7 +35,7 @@ span{
 }
 @media (max-width: 768px) {
   svg {
-    transform: rotate(90deg) scale(2) translate(20px,50px);
+    transform: rotate(90deg) scale(1.8) translate(20px,50px);
     transform-origin: center center;
   }
 }
