@@ -33,3 +33,9 @@ span{
     cursor: pointer;
     font-size: 16px;
 }
+@media (max-width: 768px) {
+  svg {
+    transform: rotate(90deg) scale(1.7) translateY(50px);
+    transform-origin: center center;
+  }
+}
