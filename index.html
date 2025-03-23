@@ -51,6 +51,7 @@
       
       #game-container {
         display: none;
+        position: relative;
       }
       
       .language-switcher {
@@ -80,6 +81,7 @@
         padding: 5px 10px;
         cursor: pointer;
         border-radius: 3px;
+        z-index: 100;
       }
       
       #user-info {
@@ -91,6 +93,7 @@
         border-radius: 3px;
         display: flex;
         align-items: center;
+        z-index: 100;
       }
       
       #user-info img {
@@ -98,6 +101,19 @@
         height: 24px;
         border-radius: 50%;
         margin-right: 8px;
+      }
+      
+      #error-message {
+        color: red;
+        margin-top: 15px;
+        font-size: 14px;
+        display: none;
+      }
+      
+      #game-instructions {
+        text-align: center;
+        margin-top: 10px;
+        font-size: 18px;
       }
     </style>
   </head>
@@ -110,6 +126,7 @@
           <img src="https://upload.wikimedia.org/wikipedia/commons/4/41/LINE_logo.svg" alt="LINE logo">
           <span id="login-btn-text">Login with LINE</span>
         </button>
+        <div id="error-message"></div>
         <div class="language-switcher">
           <button class="language-btn active" data-lang="en">English</button>
           <button class="language-btn" data-lang="zh">中文</button>
@@ -187,8 +204,9 @@
     <script src='https://cdnjs.cloudflare.com/ajax/libs/gsap/1.19.1/TweenMax.min.js'></script>
     <script src='https://s3-us-west-2.amazonaws.com/s.cdpn.io/16327/MorphSVGPlugin.min.js'></script>
     <script>
-      // LINE Login configuration
-      const LINE_CHANNEL_ID = '2006943877';
+      // Configuration
+      // Note: You need to replace this with your actual LIFF ID from LINE Developer Console
+      const LIFF_ID = '2006943877-mBJrO7a4'; // Replace this with your actual LIFF ID
       let userProfile = null;
       
       document.addEventListener('DOMContentLoaded', function() {
@@ -218,36 +236,63 @@
         
         // LINE Login button click
         document.getElementById('line-login-btn').addEventListener('click', function() {
-          liff.login();
+          if (liff.isLoggedIn()) {
+            // If already logged in, just get profile and show game
+            getProfileAndShowGame();
+          } else {
+            // Otherwise, initiate login
+            liff.login();
+          }
         });
         
         // Logout button
         document.getElementById('logout-btn').addEventListener('click', function() {
-          liff.logout();
+          if (liff.isLoggedIn()) {
+            liff.logout();
+          }
           hideGame();
         });
       });
       
       function initializeLIFF() {
+        // Check if LIFF is available
+        if (!window.liff) {
+          showError("LINE SDK not loaded correctly. Please refresh the page.");
+          return;
+        }
+        
         // Initialize LIFF SDK
         liff.init({
-          liffId: LINE_CHANNEL_ID
+          liffId: LIFF_ID
         }).then(() => {
-          // Check if user is logged in
+          console.log('LIFF initialized successfully');
+          
+          // Check if user is already logged in
           if (liff.isLoggedIn()) {
-            // Get user profile
-            liff.getProfile()
-              .then(profile => {
-                userProfile = profile;
-                showGame();
-              })
-              .catch(err => {
-                console.error('Error getting user profile:', err);
-              });
+            getProfileAndShowGame();
+          } else {
+            // If we're in LINE Browser but not logged in, we can auto-login
+            if (liff.isInClient()) {
+              liff.login();
+            }
           }
         }).catch(err => {
           console.error('LIFF initialization failed:', err);
+          showError("Failed to initialize LINE Login. Please try again later.");
         });
+      }
+      
+      function getProfileAndShowGame() {
+        // Get user profile
+        liff.getProfile()
+          .then(profile => {
+            userProfile = profile;
+            showGame();
+          })
+          .catch(err => {
+            console.error('Error getting user profile:', err);
+            showError("Failed to get your LINE profile. Please try again.");
+          });
       }
       
       function showGame() {
@@ -270,7 +315,14 @@
       function hideGame() {
         document.getElementById('login-overlay').style.display = 'flex';
         document.getElementById('game-container').style.display = 'none';
+        document.getElementById('error-message').style.display = 'none';
         userProfile = null;
+      }
+      
+      function showError(message) {
+        const errorElement = document.getElementById('error-message');
+        errorElement.textContent = message;
+        errorElement.style.display = 'block';
       }
       
       function setLanguage(lang) {
@@ -297,6 +349,19 @@
         document.getElementById('login-btn-text').textContent = t.loginButton;
         document.getElementById('instruction-text').textContent = t.instructions;
         document.getElementById('logout-btn').textContent = t.logout;
+      }
+      
+      // Fallback for direct login without LIFF
+      function fallbackLogin() {
+        // Create a simulated user for testing
+        userProfile = {
+          userId: 'test-user-' + Math.floor(Math.random() * 10000),
+          displayName: 'Test User',
+          pictureUrl: null
+        };
+        
+        // Show the game with simulated profile
+        showGame();
       }
       
       // Game initialization function
@@ -336,6 +401,14 @@
           */
         }
       }
+      
+      // Add this code to handle LIFF errors
+      window.onerror = function(message, source, lineno, colno, error) {
+        console.error('JavaScript error:', error);
+        if (message.includes('liff') || source.includes('liff')) {
+          showError('LINE Login error: ' + message);
+        }
+      };
     </script>
   </body>
 </html>
