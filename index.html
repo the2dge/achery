@@ -1,414 +1,569 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <title>Archery Game</title>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width" />
-    <link rel="stylesheet" href="style.css" />
-    <link rel="icon" href="favicon.ico">
-    <style>
-      #login-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0, 0, 0, 0.8);
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        z-index: 1000;
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LINE Archery Game</title>
+  <!-- LIFF SDK -->
+  <script src="https://static.line-scdn.net/liff/edge/2.1/sdk.js"></script>
+  <!-- TweenMax (GSAP) Library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/1.20.3/TweenMax.min.js"></script>
+  <style>
+    /* Basic reset and background */
+    body, html {
+      margin: 0;
+      padding: 0;
+      background: #222;
+      overflow: hidden;
+    }
+    svg {
+      display: block;
+      margin: auto;
+      background: #f0f0f0;
+    }
+    /* Rotate SVG 90° when viewport width is less than 768px */
+    @media (max-width: 768px) {
+      svg {
+        transform: rotate(90deg);
+        transform-origin: center center;
       }
-      
-      #login-container {
-        background-color: white;
-        padding: 30px;
-        border-radius: 10px;
-        text-align: center;
-        max-width: 80%;
-      }
-      
-      #line-login-btn {
-        background-color: #06C755;
-        color: white;
-        border: none;
-        padding: 10px 20px;
-        border-radius: 5px;
-        font-size: 16px;
-        cursor: pointer;
-        margin-top: 20px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-      
-      #line-login-btn img {
-        margin-right: 10px;
-        width: 24px;
-        height: 24px;
-      }
-      
-      #game-container {
-        display: none;
-        position: relative;
-      }
-      
-      .language-switcher {
-        margin-top: 15px;
-      }
-      
-      .language-btn {
-        background: none;
-        border: 1px solid #ccc;
-        padding: 5px 10px;
-        margin: 0 5px;
-        cursor: pointer;
-        border-radius: 3px;
-      }
-      
-      .language-btn.active {
-        background-color: #f0f0f0;
-        font-weight: bold;
-      }
-      
-      #logout-btn {
-        position: absolute;
-        top: 10px;
-        right: 10px;
-        background-color: #f0f0f0;
-        border: 1px solid #ccc;
-        padding: 5px 10px;
-        cursor: pointer;
-        border-radius: 3px;
-        z-index: 100;
-      }
-      
-      #user-info {
-        position: absolute;
-        top: 10px;
-        left: 10px;
-        background-color: rgba(255, 255, 255, 0.7);
-        padding: 5px 10px;
-        border-radius: 3px;
-        display: flex;
-        align-items: center;
-        z-index: 100;
-      }
-      
-      #user-info img {
-        width: 24px;
-        height: 24px;
-        border-radius: 50%;
-        margin-right: 8px;
-      }
-      
-      #error-message {
-        color: red;
-        margin-top: 15px;
-        font-size: 14px;
-        display: none;
-      }
-      
-      #game-instructions {
-        text-align: center;
-        margin-top: 10px;
-        font-size: 18px;
-      }
-    </style>
-  </head>
-  <body>
-    <div id="login-overlay">
-      <div id="login-container">
-        <h2 id="login-title">Login Required</h2>
-        <p id="login-message">Please log in with your LINE account to play the archery game.</p>
-        <button id="line-login-btn">
-          <img src="https://upload.wikimedia.org/wikipedia/commons/4/41/LINE_logo.svg" alt="LINE logo">
-          <span id="login-btn-text">Login with LINE</span>
-        </button>
-        <div id="error-message"></div>
-        <div class="language-switcher">
-          <button class="language-btn active" data-lang="en">English</button>
-          <button class="language-btn" data-lang="zh">中文</button>
-        </div>
-      </div>
-    </div>
-    
-    <div id="game-container">
-      <div id="user-info"></div>
-      <button id="logout-btn">Logout</button>
-      
-      <svg id="game" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 400" overflow="visible">
-        <image x="0" y="0" width="1000" height="400" xlink:href="coffee.jpg" />
-        <linearGradient id="ArcGradient" >
-            <stop offset="0"  stop-color="#fff" stop-opacity=".2"/>
-            <stop offset="50%" stop-color="#fff" stop-opacity="0"/>
-        </linearGradient>
-          <path id="arc" fill="none" stroke="url(#ArcGradient)" stroke-width="4" d="M100,250c250-400,550-400,800,0"  pointer-events="none"/>
-          <defs>
-              <g id="arrow">
-                  <line x2="60" fill="none" stroke="#888" stroke-width="2" />
-                  <polygon fill="#888" points="64 0 58 2 56 0 58 -2" />
-                  <polygon fill="#88ce02" points="2 -3 -4 -3 -1 0 -4 3 2 3 5 0" />
-              </g>
-          </defs>
-          <g id="target">
-              <path fill="#FFF" d="M924.2,274.2c-21.5,21.5-45.9,19.9-52,3.2c-4.4-12.1,2.4-29.2,14.2-41c11.8-11.8,29-18.6,41-14.2 C944.1,228.3,945.7,252.8,924.2,274.2z" />
-              <path fill="#F4531C" d="M915.8,265.8c-14.1,14.1-30.8,14.6-36,4.1c-4.1-8.3,0.5-21.3,9.7-30.5s22.2-13.8,30.5-9.7 C930.4,235,929.9,251.7,915.8,265.8z" />
-              <path fill="#FFF" d="M908.9,258.9c-8,8-17.9,9.2-21.6,3.5c-3.2-4.9-0.5-13.4,5.6-19.5c6.1-6.1,14.6-8.8,19.5-5.6 C918.1,241,916.9,250.9,908.9,258.9z" />
-              <path fill="#F4531C" d="M903.2,253.2c-2.9,2.9-6.7,3.6-8.3,1.7c-1.5-1.8-0.6-5.4,2-8c2.6-2.6,6.2-3.6,8-2 C906.8,246.5,906.1,250.2,903.2,253.2z" />
-          </g>
-          <g id="bow" fill="none" stroke-linecap="round" vector-effect="non-scaling-stroke" pointer-events="none">
-            <polyline fill="none" stroke="#ddd" stroke-linecap="round" points="88,200 88,250 88,300"/>
-            <path fill="none" stroke="#88ce02" stroke-width="3" stroke-linecap="round" d="M88,300 c0-10.1,12-25.1,12-50s-12-39.9-12-50"/>
-          </g>
-        <g class="arrow-angle"><use x="100" y="250" xlink:href="#arrow"/></g>
-        <clipPath id="mask">
-          <polygon opacity=".5" points="0,0 1500,0 1500,200 970,290 950,240 925,220 875,280 890,295 920,310 0,350" pointer-events="none"/>
-        </clipPath>
-        <g class="arrows" clip-path="url(#mask)"  pointer-events="none">
-        </g>
-        <g class="miss" fill="#aaa" opacity="0" transform="translate(0, 100)">
-          <path d="M358 194L363 118 386 120 400 153 416 121 440 119 446 203 419 212 416 163 401 180 380 160 381 204"/>
-          <path d="M450 120L458 200 475 192 474 121"/>
-          <path d="M537 118L487 118 485 160 515 162 509 177 482 171 482 193 529 199 538 148 501 146 508 133 537 137"/>
-          <path d="M540 202L543 178 570 186 569 168 544 167 546 122 590 116 586 142 561 140 560 152 586 153 586 205"/>
-          <path d="M595,215l5-23l31,0l-5,29L595,215z M627,176l13-70l-41-0l-0,70L627,176z"/>
-        </g>
-        <g class="bullseye" fill="#F4531C" opacity="0">
-          <path d="M322,159l15-21l-27-13l-32,13l15,71l41-14l7-32L322,159z M292,142h20l3,8l-16,8 L292,142z M321,182l-18,9l-4-18l23-2V182z"/>
-          <path d="M340 131L359 125 362 169 381 167 386 123 405 129 392 183 351 186z"/>
-          <path d="M413 119L402 188 450 196 454 175 422 175 438 120z"/>
-          <path d="M432 167L454 169 466 154 451 151 478 115 453 113z"/>
-          <path d="M524 109L492 112 466 148 487 155 491 172 464 167 463 184 502 191 513 143 487 141 496 125 517 126z"/>
-          <path d="M537 114L512 189 558 199 566 174 533 175 539 162 553 164 558 150 543 145 547 134 566 148 575 124z"/>
-          <path d="M577 118L587 158 570 198 587 204 626 118 606 118 598 141 590 112z"/>
-          <path d="M635 122L599 198 643 207 649 188 624 188 630 170 639 178 645 162 637 158 649 143 662 151 670 134z"/>
-          <path d="M649,220l4-21l28,4l-6,25L649,220z M681,191l40-79l-35-8L659,184L681,191z"/>
-        </g>
-        <g class="hit" fill="#ffcc00" opacity="0" transform="translate(180, -80) rotate(12) ">
-          <path d="M383 114L385 195 407 191 406 160 422 155 418 191 436 189 444 112 423 119 422 141 407 146 400 113"/>
-          <path d="M449 185L453 113 477 112 464 186"/>
-          <path d="M486 113L484 130 506 130 481 188 506 187 520 131 540 135 545 119"/>
-          <path d="M526,195l5-20l22,5l-9,16L526,195z M558,164l32-44l-35-9l-19,51L558,164z"/>
-        </g>
-      </svg>
+    }
+    /* Optional: style for the login overlay */
+    #login-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    #login-overlay div {
+      background: #fff;
+      padding: 20px;
+      text-align: center;
+      border-radius: 5px;
+    }
+    #login-overlay button {
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <!-- SVG element for the game -->
+  <svg width="1000" height="500">
+    <!-- Definitions: example arrow symbol -->
+    <defs>
+      <symbol id="arrow">
+        <line x1="0" y1="0" x2="60" y2="0" stroke="#000" stroke-width="4" />
+      </symbol>
+    </defs>
+    <!-- Container for fired arrows -->
+    <g id="arrows"></g>
+    <!-- Bow graphic -->
+    <g id="bow">
+      <polyline points="88,200 88,250 88,300" stroke="#000" stroke-width="4" fill="none"/>
+    </g>
+    <!-- Arc used for arrow animation -->
+    <path id="arc" d="M100,250c0,0,0,0,0,0" stroke="#000" stroke-width="2" fill="none"/>
+    <!-- Additional game SVG elements can be added here -->
+  </svg>
 
-      <div id="game-instructions">
-        <span id="instruction-text">拉弓，瞄準，發射！</span>
-      </div>
-    </div>
+  <script>
+    // Global variables and game settings
+    var svg = document.querySelector("svg");
+    var cursor = svg.createSVGPoint();
+    var arrows = document.querySelector("#arrows");
+    var randomAngle = 0;
+    var score = 0;
+    var arrowsLeft = 10;
+    var isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
-    <!-- Include LINE SDK -->
-    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-    <script src='https://cdnjs.cloudflare.com/ajax/libs/gsap/1.19.1/TweenMax.min.js'></script>
-    <script src='https://s3-us-west-2.amazonaws.com/s.cdpn.io/16327/MorphSVGPlugin.min.js'></script>
-    <script>
-      // Configuration
-      // Note: You need to replace this with your actual LIFF ID from LINE Developer Console
-      const LIFF_ID = '2006943877-mBJrO7a4'; // Replace this with your actual LIFF ID
-      let userProfile = null;
-      
-      document.addEventListener('DOMContentLoaded', function() {
-        // Initialize LINE LIFF
-        initializeLIFF();
-        
-        // Language switching
-        const langButtons = document.querySelectorAll('.language-btn');
-        langButtons.forEach(button => {
-          button.addEventListener('click', function() {
-            const lang = this.getAttribute('data-lang');
-            setLanguage(lang);
-            
-            // Update active button
-            langButtons.forEach(btn => btn.classList.remove('active'));
-            this.classList.add('active');
-          });
-        });
-        
-        // Set initial language based on browser preference
-        const userLang = navigator.language || navigator.userLanguage;
-        if (userLang.startsWith('zh')) {
-          setLanguage('zh');
-          document.querySelector('[data-lang="zh"]').classList.add('active');
-          document.querySelector('[data-lang="en"]').classList.remove('active');
+    // Center of target (adjust as needed)
+    var target = { x: 900, y: 249.5 };
+    // Target intersection line segment (adjust as needed)
+    var lineSegment = { x1: 875, y1: 280, x2: 925, y2: 220 };
+    // Bow rotation point
+    var pivot = { x: 100, y: 250 };
+
+    // Set up responsive viewport for mobile devices
+    function setupViewport() {
+      if (isMobile) {
+        svg.setAttribute("viewBox", "0 0 1000 500");
+        svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
+      }
+    }
+
+    // Create the scoreboard in the SVG
+    function createScoreboard() {
+      var scoreboardGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+      scoreboardGroup.setAttribute("id", "scoreboard");
+
+      var scoreboardBg = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+      scoreboardBg.setAttribute("x", "20");
+      scoreboardBg.setAttribute("y", "20");
+      scoreboardBg.setAttribute("width", "150");
+      scoreboardBg.setAttribute("height", "70");
+      scoreboardBg.setAttribute("rx", "5");
+      scoreboardBg.setAttribute("fill", "#333");
+      scoreboardBg.setAttribute("opacity", "0.7");
+
+      var scoreText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      scoreText.setAttribute("id", "score-text");
+      scoreText.setAttribute("x", "35");
+      scoreText.setAttribute("y", "50");
+      scoreText.setAttribute("fill", "#fff");
+      scoreText.setAttribute("font-size", "20");
+      scoreText.textContent = "Score: 0";
+
+      var arrowsText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      arrowsText.setAttribute("id", "arrows-text");
+      arrowsText.setAttribute("x", "35");
+      arrowsText.setAttribute("y", "75");
+      arrowsText.setAttribute("fill", "#fff");
+      arrowsText.setAttribute("font-size", "20");
+      arrowsText.textContent = "Arrows: 10";
+
+      scoreboardGroup.appendChild(scoreboardBg);
+      scoreboardGroup.appendChild(scoreText);
+      scoreboardGroup.appendChild(arrowsText);
+      svg.appendChild(scoreboardGroup);
+    }
+
+    // Update the scoreboard display
+    function updateScoreboard() {
+      document.getElementById("score-text").textContent = "Score: " + score;
+      document.getElementById("arrows-text").textContent = "Arrows: " + arrowsLeft;
+    }
+
+    // Create the reset button in the SVG
+    function createResetButton() {
+      var resetGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+      resetGroup.setAttribute("id", "reset-button");
+      resetGroup.style.cursor = "pointer";
+
+      var resetBg = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+      resetBg.setAttribute("x", "20");
+      resetBg.setAttribute("y", "100");
+      resetBg.setAttribute("width", "150");
+      resetBg.setAttribute("height", "40");
+      resetBg.setAttribute("rx", "5");
+      resetBg.setAttribute("fill", "#88ce02");
+
+      var resetText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      resetText.setAttribute("x", "40");
+      resetText.setAttribute("y", "125");
+      resetText.setAttribute("fill", "#fff");
+      resetText.setAttribute("font-size", "18");
+      resetText.textContent = "Reset Game";
+
+      resetGroup.appendChild(resetBg);
+      resetGroup.appendChild(resetText);
+
+      if (isMobile) {
+        resetGroup.addEventListener("touchstart", resetGame);
+      } else {
+        resetGroup.addEventListener("click", resetGame);
+      }
+      svg.appendChild(resetGroup);
+    }
+
+    // Create instruction overlay (for mobile)
+    function createInstructions() {
+      if (!isMobile) return;
+      var instructionsGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+      instructionsGroup.setAttribute("id", "instructions");
+
+      var instructionsBg = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+      instructionsBg.setAttribute("x", "250");
+      instructionsBg.setAttribute("y", "150");
+      instructionsBg.setAttribute("width", "500");
+      instructionsBg.setAttribute("height", "200");
+      instructionsBg.setAttribute("rx", "10");
+      instructionsBg.setAttribute("fill", "#333");
+      instructionsBg.setAttribute("opacity", "0.9");
+
+      var instructionsTitle = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      instructionsTitle.setAttribute("x", "500");
+      instructionsTitle.setAttribute("y", "190");
+      instructionsTitle.setAttribute("text-anchor", "middle");
+      instructionsTitle.setAttribute("fill", "#fff");
+      instructionsTitle.setAttribute("font-size", "24");
+      instructionsTitle.textContent = "Mobile Archery Game";
+
+      var instructionsText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      instructionsText.setAttribute("x", "500");
+      instructionsText.setAttribute("y", "230");
+      instructionsText.setAttribute("text-anchor", "middle");
+      instructionsText.setAttribute("fill", "#fff");
+      instructionsText.setAttribute("font-size", "18");
+      instructionsText.textContent = "1. Touch and drag to aim";
+
+      var instructionsText2 = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      instructionsText2.setAttribute("x", "500");
+      instructionsText2.setAttribute("y", "260");
+      instructionsText2.setAttribute("text-anchor", "middle");
+      instructionsText2.setAttribute("fill", "#fff");
+      instructionsText2.setAttribute("font-size", "18");
+      instructionsText2.textContent = "2. Release to shoot";
+
+      var startButton = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+      startButton.setAttribute("x", "400");
+      startButton.setAttribute("y", "290");
+      startButton.setAttribute("width", "200");
+      startButton.setAttribute("height", "40");
+      startButton.setAttribute("rx", "5");
+      startButton.setAttribute("fill", "#88ce02");
+
+      var startText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      startText.setAttribute("x", "500");
+      startText.setAttribute("y", "315");
+      startText.setAttribute("text-anchor", "middle");
+      startText.setAttribute("fill", "#fff");
+      startText.setAttribute("font-size", "18");
+      startText.textContent = "Start Game";
+
+      instructionsGroup.appendChild(instructionsBg);
+      instructionsGroup.appendChild(instructionsTitle);
+      instructionsGroup.appendChild(instructionsText);
+      instructionsGroup.appendChild(instructionsText2);
+      instructionsGroup.appendChild(startButton);
+      instructionsGroup.appendChild(startText);
+
+      instructionsGroup.addEventListener("touchstart", function(e) {
+        if (e.target === startButton || e.target === startText) {
+          svg.removeChild(instructionsGroup);
         }
-        
-        // LINE Login button click
-        document.getElementById('line-login-btn').addEventListener('click', function() {
-          if (liff.isLoggedIn()) {
-            // If already logged in, just get profile and show game
-            getProfileAndShowGame();
-          } else {
-            // Otherwise, initiate login
-            liff.login();
-          }
-        });
-        
-        // Logout button
-        document.getElementById('logout-btn').addEventListener('click', function() {
-          if (liff.isLoggedIn()) {
-            liff.logout();
-          }
-          hideGame();
-        });
       });
-      
-      function initializeLIFF() {
-        // Check if LIFF is available
-        if (!window.liff) {
-          showError("LINE SDK not loaded correctly. Please refresh the page.");
-          return;
-        }
-        
-        // Initialize LIFF SDK
-        liff.init({
-          liffId: LIFF_ID
-        }).then(() => {
-          console.log('LIFF initialized successfully');
-          
-          // Check if user is already logged in
-          if (liff.isLoggedIn()) {
-            getProfileAndShowGame();
-          } else {
-            // If we're in LINE Browser but not logged in, we can auto-login
-            if (liff.isInClient()) {
-              liff.login();
-            }
-          }
-        }).catch(err => {
-          console.error('LIFF initialization failed:', err);
-          showError("Failed to initialize LINE Login. Please try again later.");
-        });
+      svg.appendChild(instructionsGroup);
+    }
+
+    // Reset game state and UI
+    function resetGame(e) {
+      if (e && e.preventDefault) { e.preventDefault(); }
+      score = 0;
+      arrowsLeft = 10;
+      updateScoreboard();
+      while (arrows.firstChild) {
+        arrows.removeChild(arrows.firstChild);
       }
-      
-      function getProfileAndShowGame() {
-        // Get user profile
-        liff.getProfile()
-          .then(profile => {
-            userProfile = profile;
-            showGame();
-          })
-          .catch(err => {
-            console.error('Error getting user profile:', err);
-            showError("Failed to get your LINE profile. Please try again.");
-          });
+      TweenMax.set(".miss", { autoAlpha: 0 });
+      TweenMax.set(".hit", { autoAlpha: 0 });
+      TweenMax.set(".bullseye", { autoAlpha: 0 });
+      var gameOver = document.getElementById("game-over");
+      if (gameOver && gameOver.parentNode) {
+        svg.removeChild(gameOver);
       }
-      
-      function showGame() {
-        document.getElementById('login-overlay').style.display = 'none';
-        document.getElementById('game-container').style.display = 'block';
-        
-        // Display user info
-        if (userProfile) {
-          const userInfoElement = document.getElementById('user-info');
-          userInfoElement.innerHTML = `
-            <img src="${userProfile.pictureUrl || '/api/placeholder/24/24'}" alt="Profile">
-            <span>${userProfile.displayName}</span>
-          `;
-        }
-        
-        // Initialize the game after login
-        initializeGame();
+      if (isMobile) {
+        svg.addEventListener("touchstart", draw);
+      } else {
+        window.addEventListener("mousedown", draw);
       }
-      
-      function hideGame() {
-        document.getElementById('login-overlay').style.display = 'flex';
-        document.getElementById('game-container').style.display = 'none';
-        document.getElementById('error-message').style.display = 'none';
-        userProfile = null;
+    }
+
+    // Initialize the game (called after login)
+    function initGame() {
+      setupViewport();
+      createScoreboard();
+      createResetButton();
+      createInstructions();
+      // Set an initial aim position
+      aim({ clientX: 320, clientY: 300 });
+      if (isMobile) {
+        svg.addEventListener("touchstart", draw);
+        svg.addEventListener("touchmove", function(e) { e.preventDefault(); }, { passive: false });
+        svg.addEventListener("contextmenu", function(e) { e.preventDefault(); });
+      } else {
+        window.addEventListener("mousedown", draw);
       }
-      
-      function showError(message) {
-        const errorElement = document.getElementById('error-message');
-        errorElement.textContent = message;
-        errorElement.style.display = 'block';
+    }
+
+    // Draw function handles user interaction when firing an arrow
+    function draw(e) {
+      if (e && e.preventDefault) { e.preventDefault(); }
+      if (arrowsLeft <= 0) { return; }
+      randomAngle = (Math.random() * Math.PI * 0.03) - 0.015;
+      TweenMax.to(".arrow-angle use", 0.3, { opacity: 1 });
+      if (isMobile) {
+        window.addEventListener("touchmove", handleTouchMove);
+        window.addEventListener("touchend", loose);
+      } else {
+        window.addEventListener("mousemove", aim);
+        window.addEventListener("mouseup", loose);
       }
-      
-      function setLanguage(lang) {
-        const translations = {
-          en: {
-            loginTitle: 'Login Required',
-            loginMessage: 'Please log in with your LINE account to play the archery game.',
-            loginButton: 'Login with LINE',
-            instructions: 'Pull, aim, and shoot!',
-            logout: 'Logout'
-          },
-          zh: {
-            loginTitle: '需要登入',
-            loginMessage: '請使用LINE帳號登入以玩射箭遊戲。',
-            loginButton: '使用LINE登入',
-            instructions: '拉弓，瞄準，發射！',
-            logout: '登出'
-          }
-        };
-        
-        const t = translations[lang];
-        document.getElementById('login-title').textContent = t.loginTitle;
-        document.getElementById('login-message').textContent = t.loginMessage;
-        document.getElementById('login-btn-text').textContent = t.loginButton;
-        document.getElementById('instruction-text').textContent = t.instructions;
-        document.getElementById('logout-btn').textContent = t.logout;
+      if (isMobile) {
+        handleTouchMove(e);
+      } else {
+        aim(e);
       }
-      
-      // Fallback for direct login without LIFF
-      function fallbackLogin() {
-        // Create a simulated user for testing
-        userProfile = {
-          userId: 'test-user-' + Math.floor(Math.random() * 10000),
-          displayName: 'Test User',
-          pictureUrl: null
-        };
-        
-        // Show the game with simulated profile
-        showGame();
+    }
+
+    // Handle touch move events
+    function handleTouchMove(e) {
+      if (e.touches && e.touches[0]) {
+        aim({ clientX: e.touches[0].clientX, clientY: e.touches[0].clientY });
       }
-      
-      // Game initialization function
-      function initializeGame() {
-        // We'll initialize the game once login is successful
-        // Include the original game code from mobile.js here
-        
-        // If you have the mobile.js file, load it dynamically after login
-        const script = document.createElement('script');
-        script.src = 'mobile.js';
-        document.body.appendChild(script);
-        
-        // Log user login to your server if needed
-        logUserLogin();
+    }
+
+    // Aim the bow and arrow based on mouse/touch position
+    function aim(e) {
+      var point = getMouseSVG(e);
+      point.x = Math.min(point.x, pivot.x - 7);
+      point.y = Math.max(point.y, pivot.y + 27);
+      var dx = point.x - pivot.x;
+      var dy = point.y - pivot.y;
+      var angle = Math.atan2(dy, dx) + randomAngle;
+      var bowAngle = angle - Math.PI;
+      var distance = Math.min(Math.sqrt(dx * dx + dy * dy), 50);
+      var scale = Math.min(Math.max(distance / 30, 1), 2);
+      TweenMax.to("#bow", 0.3, {
+        scaleX: scale,
+        rotation: bowAngle + "rad",
+        transformOrigin: "right center"
+      });
+      TweenMax.to(".arrow-angle", 0.3, {
+        rotation: bowAngle + "rad",
+        svgOrigin: "100 250"
+      });
+      TweenMax.to(".arrow-angle use", 0.3, { x: -distance });
+      TweenMax.to("#bow polyline", 0.3, {
+        attr: { points: "88,200 " + Math.min(pivot.x - ((1 / scale) * distance), 88) + ",250 88,300" }
+      });
+      var radius = distance * 9;
+      var offset = { x: Math.cos(bowAngle) * radius, y: Math.sin(bowAngle) * radius };
+      var arcWidth = offset.x * 3;
+      TweenMax.to("#arc", 0.3, {
+        attr: { d: "M100,250c" + offset.x + "," + offset.y + "," + (arcWidth - offset.x) + "," + (offset.y + 50) + "," + arcWidth + ",50" },
+        autoAlpha: distance/60
+      });
+    }
+
+    // Release the arrow and animate it along the arc
+    function loose(e) {
+      if (e && e.preventDefault) { e.preventDefault(); }
+      arrowsLeft--;
+      updateScoreboard();
+      if (isMobile) {
+        window.removeEventListener("touchmove", handleTouchMove);
+        window.removeEventListener("touchend", loose);
+      } else {
+        window.removeEventListener("mousemove", aim);
+        window.removeEventListener("mouseup", loose);
       }
-      
-      function logUserLogin() {
-        // You can implement server-side logging here
-        // For example, sending user data to your backend
-        if (userProfile) {
-          console.log('User logged in:', userProfile.userId);
-          
-          // Example of sending login data to your server
-          // Uncomment and modify if you have a backend
-          /*
-          fetch('your-backend-url/log-login', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              userId: userProfile.userId,
-              displayName: userProfile.displayName,
-              timestamp: new Date().toISOString()
-            })
-          });
-          */
-        }
+      TweenMax.to("#bow", 0.4, {
+        scaleX: 1,
+        transformOrigin: "right center",
+        ease: Elastic.easeOut
+      });
+      TweenMax.to("#bow polyline", 0.4, {
+        attr: { points: "88,200 88,250 88,300" },
+        ease: Elastic.easeOut
+      });
+      var newArrow = document.createElementNS("http://www.w3.org/2000/svg", "use");
+      newArrow.setAttributeNS("http://www.w3.org/1999/xlink", "href", "#arrow");
+      arrows.appendChild(newArrow);
+      // If using MorphSVGPlugin (a GSAP plugin), ensure it is included. Otherwise, adjust the animation accordingly.
+      var path = (typeof MorphSVGPlugin !== "undefined") ? MorphSVGPlugin.pathDataToBezier("#arc") : [];
+      TweenMax.to([newArrow], 0.5, {
+        force3D: true,
+        bezier: { type: "cubic", values: path, autoRotate: ["x", "y", "rotation"] },
+        onUpdate: hitTest,
+        onUpdateParams: ["{self}"],
+        onComplete: onMiss,
+        ease: Linear.easeNone
+      });
+      TweenMax.to("#arc", 0.3, { opacity: 0 });
+      TweenMax.set(".arrow-angle use", { opacity: 0 });
+      if (arrowsLeft <= 0) {
+        setTimeout(showGameOver, 1500);
       }
-      
-      // Add this code to handle LIFF errors
-      window.onerror = function(message, source, lineno, colno, error) {
-        console.error('JavaScript error:', error);
-        if (message.includes('liff') || source.includes('liff')) {
-          showError('LINE Login error: ' + message);
-        }
+    }
+
+    // Check for collision between arrow and target
+    function hitTest(tween) {
+      var arrow = tween.target[0];
+      var transform = arrow._gsTransform;
+      var radians = transform.rotation * Math.PI / 180;
+      var arrowSegment = {
+        x1: transform.x,
+        y1: transform.y,
+        x2: (Math.cos(radians) * 60) + transform.x,
+        y2: (Math.sin(radians) * 60) + transform.y
       };
-    </script>
-  </body>
+      var intersection = getIntersection(arrowSegment, lineSegment);
+      if (intersection && intersection.segment1 && intersection.segment2) {
+        tween.pause();
+        var dx = intersection.x - target.x;
+        var dy = intersection.y - target.y;
+        var distance = Math.sqrt(dx * dx + dy * dy);
+        var selector = ".hit";
+        var points = 5;
+        if (distance < 7) {
+          selector = ".bullseye";
+          points = 10;
+        }
+        if (isMobile && window.navigator.vibrate) {
+          window.navigator.vibrate(200);
+        }
+        score += points;
+        updateScoreboard();
+        showMessage(selector);
+      }
+    }
+
+    // Called when the arrow misses the target
+    function onMiss() {
+      showMessage(".miss");
+    }
+
+    // Animate and show hit/miss messages
+    function showMessage(selector) {
+      TweenMax.killTweensOf(selector);
+      TweenMax.killChildTweensOf(selector);
+      TweenMax.set(selector, { autoAlpha: 1 });
+      TweenMax.staggerFromTo(selector + " path", 0.5, {
+        rotation: -5,
+        scale: 0,
+        transformOrigin: "center"
+      }, {
+        scale: 1,
+        ease: Back.easeOut
+      }, 0.05);
+      TweenMax.staggerTo(selector + " path", 0.3, {
+        delay: 2,
+        rotation: 20,
+        scale: 0,
+        ease: Back.easeIn
+      }, 0.03);
+    }
+
+    // Display game over screen
+    function showGameOver() {
+      var gameOverGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+      gameOverGroup.setAttribute("id", "game-over");
+
+      var gameOverBg = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+      gameOverBg.setAttribute("x", "300");
+      gameOverBg.setAttribute("y", "150");
+      gameOverBg.setAttribute("width", "400");
+      gameOverBg.setAttribute("height", "140");
+      gameOverBg.setAttribute("rx", "10");
+      gameOverBg.setAttribute("fill", "#333");
+      gameOverBg.setAttribute("opacity", "0.9");
+
+      var gameOverText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      gameOverText.setAttribute("x", "500");
+      gameOverText.setAttribute("y", "190");
+      gameOverText.setAttribute("text-anchor", "middle");
+      gameOverText.setAttribute("fill", "#fff");
+      gameOverText.setAttribute("font-size", "30");
+      gameOverText.textContent = "Game Over!";
+
+      var finalScoreText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      finalScoreText.setAttribute("x", "500");
+      finalScoreText.setAttribute("y", "230");
+      finalScoreText.setAttribute("text-anchor", "middle");
+      finalScoreText.setAttribute("fill", "#fff");
+      finalScoreText.setAttribute("font-size", "24");
+      finalScoreText.textContent = "Final Score: " + score;
+
+      var playAgainBg = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+      playAgainBg.setAttribute("x", "400");
+      playAgainBg.setAttribute("y", "250");
+      playAgainBg.setAttribute("width", "200");
+      playAgainBg.setAttribute("height", "40");
+      playAgainBg.setAttribute("rx", "5");
+      playAgainBg.setAttribute("fill", "#88ce02");
+
+      var playAgainText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      playAgainText.setAttribute("x", "500");
+      playAgainText.setAttribute("y", "275");
+      playAgainText.setAttribute("text-anchor", "middle");
+      playAgainText.setAttribute("fill", "#fff");
+      playAgainText.setAttribute("font-size", "18");
+      playAgainText.textContent = "Play Again";
+
+      gameOverGroup.appendChild(gameOverBg);
+      gameOverGroup.appendChild(gameOverText);
+      gameOverGroup.appendChild(finalScoreText);
+      gameOverGroup.appendChild(playAgainBg);
+      gameOverGroup.appendChild(playAgainText);
+
+      gameOverGroup.addEventListener(isMobile ? "touchstart" : "click", function(e) {
+        if (e.target === playAgainBg || e.target === playAgainText) {
+          resetGame(e);
+        }
+      });
+      svg.appendChild(gameOverGroup);
+      TweenMax.from(gameOverGroup, 0.5, { opacity: 0, y: -50, ease: Back.easeOut });
+    }
+
+    // Utility: convert mouse/touch coordinates to SVG coordinates
+    function getMouseSVG(e) {
+      if (isMobile && e.touches && e.touches[0]) {
+        cursor.x = e.touches[0].clientX;
+        cursor.y = e.touches[0].clientY;
+      } else {
+        cursor.x = e.clientX;
+        cursor.y = e.clientY;
+      }
+      return cursor.matrixTransform(svg.getScreenCTM().inverse());
+    }
+
+    // Utility: get the intersection point of two segments
+    function getIntersection(segment1, segment2) {
+      var dx1 = segment1.x2 - segment1.x1;
+      var dy1 = segment1.y2 - segment1.y1;
+      var dx2 = segment2.x2 - segment2.x1;
+      var dy2 = segment2.y2 - segment2.y1;
+      var cx = segment1.x1 - segment2.x1;
+      var cy = segment1.y1 - segment2.y1;
+      var denominator = dy2 * dx1 - dx2 * dy1;
+      if (denominator === 0) { return null; }
+      var ua = (dx2 * cy - dy2 * cx) / denominator;
+      var ub = (dx1 * cy - dy1 * cx) / denominator;
+      return {
+        x: segment1.x1 + ua * dx1,
+        y: segment1.y1 + ua * dy1,
+        segment1: ua >= 0 && ua <= 1,
+        segment2: ub >= 0 && ub <= 1
+      };
+    }
+
+    // LIFF integration: initialize with your LIFF ID and check login status
+    window.onload = function() {
+      liff.init({ liffId: '2006943877-mBJrO7a4' })
+        .then(() => {
+          if (!liff.isLoggedIn()) {
+            showLoginPrompt();
+          } else {
+            initGame();
+          }
+        })
+        .catch(err => {
+          console.error("LIFF Initialization failed ", err);
+        });
+    };
+
+    // Display a login overlay if not logged in
+    function showLoginPrompt() {
+      var overlay = document.createElement("div");
+      overlay.id = "login-overlay";
+      var prompt = document.createElement("div");
+      prompt.innerHTML = "<p>Please login with your LINE account to start the game.</p>" +
+                         "<button id='lineLoginBtn'>Login with LINE</button>";
+      overlay.appendChild(prompt);
+      document.body.appendChild(overlay);
+
+      document.getElementById("lineLoginBtn").addEventListener("click", function() {
+        liff.login();
+      });
+    }
+  </script>
+</body>
 </html>
